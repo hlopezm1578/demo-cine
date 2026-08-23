@@ -31,7 +31,7 @@ aprobar la anterior.
 | 2 | Requerimientos | [`docs/02_requerimientos.md`](docs/02_requerimientos.md) | ✅ |
 | 3 | Diseño (datos, DFD, pantallas) | [`docs/03_diseno.md`](docs/03_diseno.md) | ✅ |
 | 4 | Arquitectura + 8 ADRs + contrato OpenAPI | [`docs/04_arquitectura/`](docs/04_arquitectura) | ✅ |
-| 5 | Desarrollo (guías paso a paso) | [`docs/05_desarrollo/`](docs/05_desarrollo) | 📝 En curso |
+| 5 | Desarrollo (guías paso a paso) | [`docs/05_desarrollo/`](docs/05_desarrollo) | ✅ |
 | 6 | Pruebas | `docs/06_pruebas.md` | Pendiente |
 | 7 | Despliegue | `docs/07_despliegue.md` | Pendiente |
 | 8 | Mantenimiento | `docs/08_mantenimiento.md` | Pendiente |
