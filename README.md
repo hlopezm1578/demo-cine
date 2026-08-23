@@ -31,7 +31,7 @@ aprobar la anterior.
 | 2 | Requerimientos | [`docs/02_requerimientos.md`](docs/02_requerimientos.md) | ✅ |
 | 3 | Diseño (datos, DFD, pantallas) | [`docs/03_diseno.md`](docs/03_diseno.md) | ✅ |
 | 4 | Arquitectura + 8 ADRs + contrato OpenAPI | [`docs/04_arquitectura/`](docs/04_arquitectura) | ✅ |
-| 5 | Desarrollo (guías paso a paso) | [`docs/05_desarrollo/`](docs/05_desarrollo) | ✅ |
+| 5 | Desarrollo (8 guías paso a paso) | [`docs/05_desarrollo/`](docs/05_desarrollo) | ✅ |
 | 6 | Pruebas | `docs/06_pruebas.md` | Pendiente |
 | 7 | Despliegue | `docs/07_despliegue.md` | Pendiente |
 | 8 | Mantenimiento | `docs/08_mantenimiento.md` | Pendiente |
@@ -47,17 +47,24 @@ El índice detallado del ciclo vive en [`docs/README.md`](docs/README.md).
   ([`contrato_api.yaml`](docs/04_arquitectura/contrato_api.yaml)) se diseñó y
   aprobó **antes** del código; el desarrollo debe cumplirlo y la divergencia se
   detecta comparándolo con la documentación generada.
-- **Guías de desarrollo "senior → junior"** (`docs/05_desarrollo/`): el
-  razonamiento de un desarrollador experimentado narrado paso a paso, con
-  bloques de código para copiar y verificaciones al final de cada paso.
+- **Guías de desarrollo "senior → junior"** (`docs/05_desarrollo/`): 8 guías
+  que construyen la aplicación completa **de adentro hacia afuera** (datos →
+  almacenes → reglas → API → web → panel), con el razonamiento de un
+  desarrollador experimentado narrado paso a paso, bloques de código para
+  copiar y verificaciones al final de cada paso.
 - **SOLID pragmático**: los principios se aplican donde pagan (la abstracción
   de almacenamiento es el ejemplo estrella), y esa decisión —no el ritual— es
   material de discusión.
 
-## Stack (cuando el código llegue)
+## Stack y cómo construir la aplicación
 
 Python 3.11+ · FastAPI · SQLAlchemy 2 · Jinja2 · SQLite en desarrollo / Postgres
 (Neon) en producción · JWT + bcrypt · Render como plataforma gratuita.
+
+El código completo del proyecto vive **narrado en las 8 guías** de la fase 5:
+siguiéndolas en orden —copiando los bloques y pasando cada ✅ verificación— la
+aplicación queda construida y probada de punta a punta. Ese recorrido guiado
+es la experiencia diseñada para el aula.
 
 ## Uso en clases
 
