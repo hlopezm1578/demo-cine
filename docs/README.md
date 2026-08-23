@@ -13,9 +13,9 @@
 | 3 | Diseño (modelo de datos, procesos, pantallas) | `03_diseno.md` | ✅ Listo |
 | 4 | Arquitectura y decisiones (ADRs) + contrato API-first | `04_arquitectura/` (documento + 8 ADRs + `contrato_api.yaml`) | ✅ Listo |
 | 5 | Desarrollo | `05_desarrollo/` (8 guías paso a paso con razonamiento y código) | ✅ Listo |
-| 6 | Pruebas | `06_pruebas.md` | Pendiente |
-| 7 | Despliegue | `07_despliegue.md` | Pendiente |
-| 8 | Mantenimiento | `08_mantenimiento.md` | Pendiente |
+| 6 | Pruebas | `06_pruebas.md` (guía: suite pytest) | ✅ Listo |
+| 7 | Despliegue | `07_despliegue.md` (guía: Render + Neon) | ✅ Listo |
+| 8 | Mantenimiento | `08_mantenimiento.md` (guía: bitácora y escenarios) | ✅ Listo |
 
 **Regla del proyecto:** ninguna fase se escribe sin aprobar la anterior. Así se
 vive el ciclo: la necesidad aprueba el cliente, los requerimientos los firma el

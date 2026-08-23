@@ -32,9 +32,9 @@ aprobar la anterior.
 | 3 | Diseño (datos, DFD, pantallas) | [`docs/03_diseno.md`](docs/03_diseno.md) | ✅ |
 | 4 | Arquitectura + 8 ADRs + contrato OpenAPI | [`docs/04_arquitectura/`](docs/04_arquitectura) | ✅ |
 | 5 | Desarrollo (8 guías paso a paso) | [`docs/05_desarrollo/`](docs/05_desarrollo) | ✅ |
-| 6 | Pruebas | `docs/06_pruebas.md` | Pendiente |
-| 7 | Despliegue | `docs/07_despliegue.md` | Pendiente |
-| 8 | Mantenimiento | `docs/08_mantenimiento.md` | Pendiente |
+| 6 | Pruebas (guía: suite pytest, 17 pruebas) | [`docs/06_pruebas.md`](docs/06_pruebas.md) | ✅ |
+| 7 | Despliegue (guía: Render + Neon gratis) | [`docs/07_despliegue.md`](docs/07_despliegue.md) | ✅ |
+| 8 | Mantenimiento (guía: bitácora y escenarios) | [`docs/08_mantenimiento.md`](docs/08_mantenimiento.md) | ✅ |
 
 El índice detallado del ciclo vive en [`docs/README.md`](docs/README.md).
 
