@@ -50,6 +50,42 @@ pip freeze > requirements.txt
 
 Crea el archivo **`requirements.txt`** con ese último comando (ábrelo: debe listar `fastapi`, `uvicorn` y sus librerías amigas). Cualquier persona podrá reproducir tu entorno con `pip install -r requirements.txt`.
 
+### Antes del primer commit: el `.gitignore`
+
+🧠 **El desarrollador piensa:** *este proyecto irá a GitHub, pero no TODO debe viajar. El entorno virtual pesa decenas de MB y se reconstruye con `requirements.txt` (acabas de ver cómo); las bases de datos locales y las contraseñas sueltas tampoco se publican. El `.gitignore` se crea **hoy, antes del primer commit**, porque quitar archivos de un repositorio después de subirlos es mucho más doloroso que no subirlos nunca. Ojo: algunas líneas cuidan carpetas que aparecerán en guías futuras (`uploads/`, `pruebas/`) — el ignore crece junto al proyecto.*
+
+Crea el archivo **`.gitignore`** en la raíz del proyecto:
+
+```
+# --- Entorno virtual ---
+venv/
+
+# --- Caché de Python ---
+__pycache__/
+*.py[cod]
+
+# --- Bases de datos locales ---
+*.db
+*.sqlite3
+
+# --- Archivos subidos por usuarios (carátulas, guía 7) ---
+uploads/
+
+# --- Pruebas (fase 6) ---
+.pytest_cache/
+
+# --- Secretos locales (si algún día se usa un .env, jamás al repo) ---
+.env
+
+# --- Editores / sistema ---
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+```
+
+✅ **Mini-verificación** (si ya tienes git instalado): ejecuta `git init` y luego `git status` — la lista de archivos debe mostrar tu código, **pero ni rastro de `venv/`**. Si aparece, revisa que `.gitignore` esté en la raíz, junto a `requirements.txt`.
+
 ---
 
 ## Paso 2 — La carpeta `app`: el hogar del código
@@ -198,11 +234,13 @@ Para detener el servidor: `Ctrl+C` en la terminal.
 1. ¿Por qué `SECRET_KEY` se lee del entorno y no se escribe directo en `config.py`?
 2. ¿Qué contiene `requirements.txt` y para qué le sirve a tu compañero que quiere correr tu proyecto?
 3. Según ADR-001, ¿qué tipo de código está *prohibido* en `main.py`?
+4. `venv/` no se sube al repositorio, pero sin él el proyecto no corre. ¿Cómo lo resuelve quien clona tu proyecto?
 
 ## Lo que acabas de aprender
 
 - Entorno virtual y por qué cada proyecto tiene el suyo
 - Variables de entorno como lugar de los secretos (RNF-03)
+- El `.gitignore`: qué viaja al repositorio y qué se reconstruye localmente
 - El patrón "punto de composición": `main.py` compone, no piensa
 - Tu primer endpoint y la documentación automática de FastAPI
 
