@@ -1,0 +1,25 @@
+# --- Entorno virtual ---
+venv/
+
+# --- Caché de Python ---
+__pycache__/
+*.py[cod]
+
+# --- Bases de datos locales ---
+*.db
+*.sqlite3
+
+# --- Archivos subidos por usuarios (carátulas) ---
+uploads/
+
+# --- Pruebas ---
+.pytest_cache/
+
+# --- Secretos locales (si algún día se usa un .env, jamás al repo) ---
+.env
+
+# --- Editores / sistema ---
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store

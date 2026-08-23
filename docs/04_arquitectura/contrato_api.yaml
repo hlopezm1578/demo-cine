@@ -1,0 +1,400 @@
+# ============================================================================
+# Cartelera — Contrato de la API (OpenAPI 3.0)
+# Fase 4 · API-first (ADR-008): este documento es la FUENTE DE LA VERDAD de la
+# interfaz. Se aprueba antes de codificar; la fase 5 debe implementarlo sin
+# desviarse. Trazabilidad: cada operación cita el RF/RN que la origina
+# (docs/02_requerimientos.md).
+# Probarlo sin backend: importar este archivo en Swagger Editor o Postman.
+# ============================================================================
+openapi: 3.0.3
+
+info:
+  title: Cartelera API
+  version: 1.0.0
+  description: |
+    API del catálogo de películas del CineClub Barrio.
+
+    **Autenticación:** dos formas equivalentes (ADR-003):
+    - **Web:** cookie `sesion` (la establece el login del sitio).
+    - **API:** cabecera `Authorization: Bearer <token>` (el token se obtiene en `/api/sesion`).
+
+    **Convención de errores:**
+    | Código | Significado |
+    |---|---|
+    | 400 | Regla de negocio violada (RN-03, RN-05) |
+    | 401 | Sin sesión o credenciales incorrectas |
+    | 403 | Con sesión, pero sin permiso (RN-04: solo la coordinadora) |
+    | 404 | Recurso inexistente |
+    | 409 | Conflicto (ej.: email ya registrado) |
+    | 422 | Datos mal formados (validación de esquema, RN-02) |
+
+servers:
+  - url: http://127.0.0.1:8000
+    description: Desarrollo local
+  - url: https://TU-APP.onrender.com
+    description: Producción (Render — reemplazar por la URL real, ADR-007)
+
+tags:
+  - name: Películas
+    description: Catálogo público (P2, C5)
+  - name: Cuentas
+    description: Registro y sesión de socios (P3, C3)
+  - name: Calificaciones
+    description: Votos por estrellas (P3, RN-01, RN-02)
+  - name: Operación
+    description: Chequeo del servicio
+
+# ---------------------------------------------------------------------------
+# Seguridad
+# ---------------------------------------------------------------------------
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: Token emitido por POST /api/sesion
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: sesion
+      description: Cookie HttpOnly que establece el login web (ADR-003)
+
+  schemas:
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          example: Película no encontrada
+      required: [detail]
+
+    PeliculaResumen:
+      type: object
+      description: Como aparece una película en el catálogo (RF-05)
+      properties:
+        id:
+          type: integer
+          example: 3
+        titulo:
+          type: string
+          example: Coco
+        anio:
+          type: integer
+          example: 2017
+        promedio:
+          type: number
+          format: float
+          description: Promedio de estrellas, redondeado a 1 decimal; 0.0 si nadie ha calificado
+          example: 3.8
+        total_calificaciones:
+          type: integer
+          description: Cantidad de votos (se muestra junto al promedio para no engañar)
+          example: 12
+        imagen:
+          type: string
+          description: URL pública de la carátula, o imagen genérica si no tiene (RN-05)
+          example: /uploads/9f2c8a1b4e6d7a8f.png
+      required: [id, titulo, anio, promedio, total_calificaciones, imagen]
+
+    PeliculaDetalle:
+      allOf:
+        - $ref: '#/components/schemas/PeliculaResumen'
+        - type: object
+          description: La ficha completa (RF-06)
+          properties:
+            sinopsis:
+              type: string
+              example: >-
+                Miguel viaja por accidente a la Tierra de los Muertos y
+                descubre la verdad sobre la historia de su familia.
+            url_trailer:
+              type: string
+              description: Link de YouTube ya normalizado a formato embebido (RN-03)
+              example: https://www.youtube.com/embed/Ga6RYejo6Hk
+          required: [sinopsis, url_trailer]
+
+    UsuarioCrear:
+      type: object
+      description: Datos para registrarse (RF-01)
+      properties:
+        nombre:
+          type: string
+          minLength: 2
+          maxLength: 80
+          example: Fernanda
+        email:
+          type: string
+          format: email
+          maxLength: 120
+          example: fer@ejemplo.cl
+        contrasena:
+          type: string
+          minLength: 8
+          maxLength: 100
+          description: Mínimo 8 caracteres; nunca se devuelve en ninguna respuesta (RNF-01)
+          example: clave-segura-123
+      required: [nombre, email, contrasena]
+
+    SolicitudSesion:
+      type: object
+      description: Credenciales para iniciar sesión (RF-02)
+      properties:
+        email:
+          type: string
+          format: email
+          example: fer@ejemplo.cl
+        contrasena:
+          type: string
+          example: clave-segura-123
+      required: [email, contrasena]
+
+    UsuarioOut:
+      type: object
+      description: Un usuario visible en respuestas. El hash de contraseña jamás aparece.
+      properties:
+        id:
+          type: integer
+          example: 7
+        nombre:
+          type: string
+          example: Fernanda
+        email:
+          type: string
+          format: email
+          example: fer@ejemplo.cl
+        rol:
+          type: string
+          enum: [socio, admin]
+          description: "'socio' califica; 'admin' (la coordinadora) además gestiona el catálogo (RN-04)"
+          example: socio
+      required: [id, nombre, email, rol]
+
+    TokenRespuesta:
+      type: object
+      properties:
+        token:
+          type: string
+          description: "JWT para usar en Authorization: Bearer (ADR-003); vence a los 7 días"
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+      required: [token]
+
+    CalificacionEntrada:
+      type: object
+      description: El voto del socio (RF-08)
+      properties:
+        pelicula_id:
+          type: integer
+          example: 3
+        estrellas:
+          type: integer
+          minimum: 1
+          maximum: 5
+          description: Entero entre 1 y 5 (RN-02); fuera de rango → 422
+          example: 5
+      required: [pelicula_id, estrellas]
+
+    CalificacionRespuesta:
+      type: object
+      description: Estado después de votar o recalificar (RF-09)
+      properties:
+        promedio:
+          type: number
+          format: float
+          example: 4.1
+        total_calificaciones:
+          type: integer
+          description: "Tras recalificar NO aumenta: un voto por socio (RN-01)"
+          example: 13
+        mi_calificacion:
+          type: integer
+          example: 5
+      required: [promedio, total_calificaciones, mi_calificacion]
+
+# ---------------------------------------------------------------------------
+# Operaciones
+# ---------------------------------------------------------------------------
+paths:
+  /salud:
+    get:
+      tags: [Operación]
+      summary: Chequeo de vida del servicio
+      responses:
+        '200':
+          description: Servicio arriba
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  estado: { type: string, example: ok }
+
+  /api/peliculas:
+    get:
+      tags: [Películas]
+      summary: Listar el catálogo con promedios
+      description: RF-05 · Público (P2, C5). Una sola consulta devuelve películas con su promedio y conteo de votos.
+      responses:
+        '200':
+          description: El catálogo completo
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PeliculaResumen'
+
+  /api/peliculas/{pelicula_id}:
+    get:
+      tags: [Películas]
+      summary: Ver la ficha de una película
+      description: RF-06 · Público. Incluye sinopsis y tráiler ya normalizado (RN-03).
+      parameters:
+        - name: pelicula_id
+          in: path
+          required: true
+          schema: { type: integer }
+          example: 3
+      responses:
+        '200':
+          description: La ficha
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PeliculaDetalle'
+        '404':
+          description: Película inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/usuarios:
+    post:
+      tags: [Cuentas]
+      summary: Registrar un socio
+      description: "RF-01 · Público. El email debe ser único: duplicado → 409."
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UsuarioCrear'
+      responses:
+        '201':
+          description: Cuenta creada (sin devolver jamás el hash)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioOut'
+        '409':
+          description: Ya existe una cuenta con ese email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Datos mal formados (nombre corto, email inválido, contraseña < 8)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/sesion:
+    post:
+      tags: [Cuentas]
+      summary: Iniciar sesión
+      description: RF-02 · Público. Devuelve el token Bearer. Mensaje genérico si falla (no revela si el email existe).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SolicitudSesion'
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRespuesta'
+        '401':
+          description: Email o contraseña incorrectos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Datos mal formados
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/yo:
+    get:
+      tags: [Cuentas]
+      summary: ¿Quién soy?
+      description: Prueba rápida del token (con el botón Authorize en Swagger UI).
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      responses:
+        '200':
+          description: El usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UsuarioOut'
+        '401':
+          description: Sin sesión
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+  /api/calificaciones:
+    post:
+      tags: [Calificaciones]
+      summary: Calificar o recalificar una película
+      description: |
+        RF-08, RF-09 · Requiere sesión (RF-03).
+
+        Reglas:
+        - Estrellas entero 1–5; fuera de rango → 422 (RN-02).
+        - Si el socio ya votó esa película, su voto se **reemplaza**: el total NO aumenta (RN-01).
+        - Película inexistente → 404.
+      security:
+        - bearerAuth: []
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CalificacionEntrada'
+      responses:
+        '200':
+          description: Voto guardado o reemplazado, con el nuevo promedio
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CalificacionRespuesta'
+        '401':
+          description: Sin sesión (no se puede calificar como visitante)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Película inexistente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '422':
+          description: Estrellas fuera de 1–5 u otro dato mal formado (RN-02)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
