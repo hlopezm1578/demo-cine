@@ -12,6 +12,7 @@
 |---|---|
 | **Esquema (Pydantic)** | La forma que deben tener los datos que entran y salen; Pydantic valida solo (RN-02, por ejemplo) |
 | **Dependencia (FastAPI)** | Una función que FastAPI resuelve ANTES de tu ruta e inyecta el resultado — inyección de dependencias de verdad |
+| **Esquema de seguridad (OpenAPI)** | La declaración formal de CÓMO se autentica cada petición. Sin ella, `/docs` no muestra el botón **Authorize** — por más que el código lea tokens |
 | **response_model** | El contrato de salida: lo que no está declarado, no se serializa (el hash de contraseñas jamás sale) |
 | **Código de estado** | El idioma de resultados del HTTP: 201 creado, 401 sin sesión, 409 conflicto… (ver portada del contrato) |
 
@@ -128,13 +129,14 @@ __all__ = [
 
 ## Paso 2 — `dependencias.py`: ¿quién llama? ¿puede?
 
-🧠 **El desarrollador piensa:** *la pregunta "¿quién es el que llama?" se resuelve en un solo lugar (ADR-003): leo el token del encabezado Bearer o de la cookie, lo verifico y cargo el usuario. Sobre esa base, dos reglas más: "exigir sesión" y "exigir coordinadora". FastAPI cachea el resultado por petición: aunque tres dependencias la usen, la base se consulta una vez. Así el "¿puede?" queda escrito una sola vez en el proyecto.*
+🧠 **El desarrollador piensa:** *la pregunta "¿quién es el que llama?" se resuelve en un solo lugar (ADR-003). Y aquí hay una trampa que descubrí a los golpes: si leo el encabezado `Authorization` a mano con `request.headers.get(...)`, la autenticación **funciona**… pero `/docs` no muestra el botón **Authorize**. ¿Por qué? Porque ese botón aparece únicamente cuando el OpenAPI generado declara un **esquema de seguridad**, y FastAPI solo lo declara si usamos sus utilidades de seguridad. La solución hace doble trabajo: `HTTPBearer` extrae el encabezado por nosotros Y registra el esquema (el candadito aparece). Con `auto_error=False` devuelve `None` cuando el encabezado no viene, en vez de rechazar la petición — necesario porque nuestro usuario de la web llega por cookie. Sobre esa base, dos reglas más: "exigir sesión" y "exigir coordinadora". Y FastAPI cachea el resultado por petición: aunque tres dependencias la usen, la base se consulta una vez.*
 
 Crea **`app/dependencias.py`**:
 
 ```python
 """Dependencias de FastAPI: identificar y autorizar al usuario (ADR-003)."""
 from fastapi import Depends, HTTPException, Request
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.orm import Session
 
 from app.config import NOMBRE_COOKIE
@@ -143,20 +145,26 @@ from app.modelos import Usuario
 from app.repositorios import RepositorioUsuarios
 from app.servicios import autenticacion
 
+# Declarar el esquema Bearer hace DOS trabajos: FastAPI extrae el encabezado
+# Authorization por nosotros Y publica el esquema de seguridad en el OpenAPI
+# generado — sin esto, /docs no muestra el botón Authorize.
+# auto_error=False: sin encabezado devuelve None (nuestro usuario web llega
+# por cookie), en vez de rechazar con un 403 automático.
+seguridad_bearer = HTTPBearer(auto_error=False)
+
 
 def obtener_usuario_actual(
-    request: Request, sesion: Session = Depends(obtener_sesion)
+    request: Request,
+    credenciales: HTTPAuthorizationCredentials | None = Depends(seguridad_bearer),
+    sesion: Session = Depends(obtener_sesion),
 ) -> Usuario | None:
     """Identifica al usuario a partir del token, o None si es anónimo.
 
     Acepta el token de dos formas (ADR-003):
-      - cookie 'sesion' (navegador web — la setea el login de la guía 6)
       - cabecera Authorization: Bearer <token> (pruebas desde /docs)
+      - cookie 'sesion' (navegador web — la setea el login de la guía 6)
     """
-    token = None
-    cabecera = request.headers.get("Authorization")
-    if cabecera and cabecera.startswith("Bearer "):
-        token = cabecera[len("Bearer "):]
+    token = credenciales.credentials if credenciales is not None else None
     if not token:
         token = request.cookies.get(NOMBRE_COOKIE)
 
