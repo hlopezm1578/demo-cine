@@ -16,14 +16,9 @@
 
 ---
 
-## Paso 0 — Dependencia y la coordinadora
+## Paso 0 — La coordinadora de prueba
 
-```powershell
-pip install python-multipart
-pip freeze > requirements.txt
-```
-
-🧠 **El desarrollador piensa:** *para probar el panel necesito a la coordinadora (rol admin), y su creación formal (la `semilla.py`) recién llega en la guía 8. Solución honesta: la creo a mano ahora con un mini-script desechable — hash de verdad incluido, que para eso ya tenemos el servicio — y en la guía 8 lo convierto en algo permanente y reproducible.*
+🧠 **El desarrollador piensa:** *`python-multipart` ya quedó instalado en la guía 6 — todo formulario lo necesita, no solo los que suben archivos; hoy lo estrenamos con archivos de verdad. Para probar el panel necesito a la coordinadora (rol admin), y su creación formal (la `semilla.py`) recién llega en la guía 8. Solución honesta: la creo a mano ahora con un mini-script desechable — hash de verdad incluido, que para eso ya tenemos el servicio — y en la guía 8 lo convierto en algo permanente y reproducible.*
 
 Crea **`crear_coordinadora.py`** en la raíz (desechable):
 

@@ -20,9 +20,11 @@
 ## Paso 0 — Dependencias y carpetas
 
 ```powershell
-pip install jinja2
+pip install jinja2 python-multipart
 pip freeze > requirements.txt
 ```
+
+🧠 **El desarrollador piensa:** *`jinja2` es el motor de plantillas. Y `python-multipart` es la sorpresa del día: uno cree que solo sirve para subir archivos, pero **todo formulario HTML** —aunque solo tenga campos de texto, como nuestro login— viaja como *form data*, y FastAPI le delega el parseo a esa librería. Sin ella, la aplicación **ni siquiera parte**: revienta al arrancar en cuanto se registra la primera ruta con `Form(...)`. (Pregunta de clase: ¿por qué el error aparece al arrancar y no al enviar el formulario? Pista: FastAPI analiza las firmas de las rutas al registrarlas.)*
 
 Crea esta estructura:
 

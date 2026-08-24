@@ -123,7 +123,7 @@ sqlalchemy
 uvicorn[standard]
 ```
 
-Si falta algo, las dependencias por guía fueron: `fastapi` y `uvicorn[standard]` (guía 1), `sqlalchemy` (guía 2), `bcrypt` y `PyJWT` (guía 4), `email-validator` (guía 5), `jinja2` (guía 6), `python-multipart` (guía 7). El `psycopg2-binary` (driver de Postgres) se agregará en la guía de despliegue, cuando exista una base real a la que conectarse.
+Si falta algo, las dependencias por guía fueron: `fastapi` y `uvicorn[standard]` (guía 1), `sqlalchemy` (guía 2), `bcrypt` y `PyJWT` (guía 4), `email-validator` (guía 5), `jinja2` y `python-multipart` (guía 6). El `psycopg2-binary` (driver de Postgres) se agregará en la guía de despliegue, cuando exista una base real a la que conectarse.
 
 ---
 
