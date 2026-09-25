@@ -31,7 +31,9 @@ Uso (desde la raíz del proyecto):
     python semilla.py
 
 Idempotente: si el admin ya existe o ya hay películas, no duplica nada.
-Contra PRODUCCIÓN se corre igual, apuntando la base de Neon:
+En PRODUCCIÓN lo corre el build de Render en cada deploy (ver fase 7);
+a mano también se puede, apuntando la base de Neon desde una red que
+permita el puerto 5432:
 
     # Git Bash / Linux / macOS
     DATABASE_URL="postgresql+psycopg2://usuario:clave@host/bd" python semilla.py

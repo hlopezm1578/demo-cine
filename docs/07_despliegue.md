@@ -25,13 +25,25 @@
 
 🧠 **El desarrollador piensa:** *Render va a construir desde cero: clona tu repo, instala requirements, arranca el comando. Solo necesita tres cosas de tu parte: el `requirements.txt` completo y correcto, el código en GitHub, y **nada de secretos pegados en el código** (que ya cumplimos — todo vive en `config.py` leyendo el entorno, RNF-03). Falta una pieza: el driver de Postgres, que en desarrollo no se usa pero en producción sí. Si falta, la app parte feliz con SQLite… hasta que la configuras con la URL de Neon y revienta.*
 
-```powershell
+```bash
+# Git Bash (recomendado)
 pip install psycopg2-binary
 pip freeze > requirements.txt
 git add requirements.txt
 git commit -m "Despliegue: driver de Postgres para produccion"
 git push
 ```
+
+```powershell
+# PowerShell: `>` escribe UTF-16 y git lo trata como binario — usa Out-File
+pip install psycopg2-binary
+pip freeze | Out-File -Encoding utf8 requirements.txt
+git add requirements.txt
+git commit -m "Despliegue: driver de Postgres para produccion"
+git push
+```
+
+> ⚠️ **Dos trampas de Windows que tumban deploys reales:** (1) el `>` de PowerShell escribe el archivo en UTF-16: git ve el `requirements.txt` como binario y el diff se vuelve ilegible. (2) Render construye desde **GitHub, no desde tu disco**: si no hubo `git push`, para Render el driver no existe. El síntoma de cualquiera de esas dos (o de olvidar el `pip install` antes del `freeze`): el deploy muere con `ModuleNotFoundError: No module named 'psycopg2'`.
 
 ## Paso 1 — La base de datos: Neon (Postgres gratis)
 
@@ -53,9 +65,11 @@ git push
 | Region | la misma que Neon |
 | Branch | `main` |
 | Runtime | **Python 3** |
-| Build Command | `pip install -r requirements.txt` |
+| Build Command | `pip install -r requirements.txt && python semilla.py` |
 | Start Command | `uvicorn app.main:app --host 0.0.0.0 --port $PORT` |
 | Instance Type | **Free** |
+
+> El build termina con `python semilla.py`: siembra la base de Neon en cada despliegue, desde la propia red de Render. El por qué, en el Paso 3.
 
 4. Antes de crear, abre **Environment** y agrega las variables:
 
@@ -74,9 +88,18 @@ python -c "import secrets; print(secrets.token_hex(32))"
 
 🧠 **El desarrollador piensa:** *`--host 0.0.0.0` y `--port $PORT`: en mi computador yo elijo el puerto 8000; en Render el puerto me lo asignan ellos y me lo pasan EN esa variable. `run.py` era para mí; este comando es para la nube. Dos arranques, un mismo código.*
 
-## Paso 3 — Sembrar la base de producción (una sola vez)
+## Paso 3 — Sembrar la base de producción (desde el build, no desde tu computador)
 
-Desde tu computador, en la raíz del proyecto, apuntando a la base de Neon:
+🧠 **El desarrollador piensa:** *la app crea las tablas sola al arrancar (`crear_tablas()`), pero la cuenta de la coordinadora **solo la crea `semilla.py`** — y ojo: `ADMIN_EMAIL`/`ADMIN_PASSWORD` no crean la cuenta por sí solas, son la configuración que el script lee al correr. Si nadie ejecuta la semilla, la tabla `usuarios` queda vacía y el login rechaza hasta las credenciales correctas con un "Email o contraseña incorrectos". Sembrar no es opcional.*
+
+¿Por qué no correrlo a mano desde tu computador, como en la guía 8? Dos muros que aparecen en el mundo real:
+
+- **El plan gratis de Render no tiene Shell**: no puedes entrar al servidor a ejecutar nada.
+- **Muchas redes (trabajo, campus) bloquean el puerto 5432** hacia afuera: `python semilla.py` apuntando a Neon se queda esperando y muere con *timeout*, aunque la URL esté perfecta. La app funciona; es la red la que no deja pasar.
+
+La solución ya quedó instalada en el Paso 2: el Build Command termina con `&& python semilla.py`. Así **cada deploy siembra la base desde la red de Render**, que sí llega a Neon. Como el script es idempotente (guía 8), repetirlo en cada despliegue es gratis: desde la segunda vez imprime `[=] La coordinadora ya existía`. Busca esa línea (o `[+] Coordinadora creada`) en el log del build — es tu confirmación de que la siembra llegó a Neon.
+
+**Plan B** — sembrar a mano desde tu computador (funciona en casa o con datos móviles, redes sin el bloqueo):
 
 ```bash
 # Git Bash / Linux / macOS
@@ -86,11 +109,20 @@ DATABASE_URL="postgresql+psycopg2://usuario:clave@ep-xxxx.neon.tech/bd?sslmode=r
 $env:DATABASE_URL="postgresql+psycopg2://usuario:clave@ep-xxxx.neon.tech/bd?sslmode=require"; python semilla.py
 ```
 
-El mismo `semilla.py` de la guía 8, **cero cambios**: solo cambia el entorno. Debe imprimir que creó la coordinadora y las 4 películas.
+**Plan C** — si todo lo demás falla: la consola de Neon trae un **SQL Editor** web donde puedes crear la cuenta con un `INSERT` a mano (el detalle está en generar el hash bcrypt correcto para la contraseña).
 
 ## Paso 4 — Deploy continuo (el regalo de GitHub)
 
 🧠 **El desarrollador piensa:** *acabo de conectar mi repo con Render: desde ahora, cada `git push` a `main` dispara un build y un despliegue automáticos. Eso que las empresas llaman CI/CD, en chico y gratis. Haz la prueba: cambia el saludo de la home en la plantilla, commitea, pushea, y mira el log de Render hacer el trabajo.*
+
+## 🔧 Errores típicos del deploy (diagnóstico rápido)
+
+| Síntoma | Causa | Remedio |
+|---|---|---|
+| El deploy muere con `ModuleNotFoundError: No module named 'psycopg2'` | `requirements.txt` sin el driver **en GitHub**: no instalado antes del `freeze`, no commiteado o no pusheado | Paso 0 completo: instalar, regenerar, commit, push |
+| La app parte, pero el login rechaza tus credenciales correctas | La tabla `usuarios` está vacía: nadie corrió `semilla.py` contra Neon | Build Command con `&& python semilla.py` (Paso 3) |
+| `python semilla.py` local contra Neon da *timeout* | Tu red bloquea el puerto 5432 (trabajo/campus) | Sembrar desde el build de Render (Paso 3) |
+| Deploy verde, pero nada se guarda y el login "se resetea" tras un redeploy | `DATABASE_URL` sin setear (o mal escrita) en Render: la app cayó en silencio al SQLite efímero de respaldo | Revisar **Environment** y lanzar **Manual Deploy** |
 
 ---
 
@@ -115,12 +147,14 @@ El mismo `semilla.py` de la guía 8, **cero cambios**: solo cambia el entorno. D
 2. ¿Por qué la URL lleva `+psycopg2` y qué pasa si lo olvidas?
 3. Tu app está "lenta" solo en la primera visita de la mañana. Diagnóstico: ¿bug, hibernación o mala arquitectura? ¿Qué plan de Render lo arregla y qué cuesta la diferencia?
 4. La carátula desapareció tras el redeploy pero la calificación no. Explica la diferencia con precisión de arquitectura.
+5. Desde el computador del trabajo `semilla.py` nunca conecta a Neon, pero el build de Render sí. ¿Quién está bloqueando, y por qué el build logra pasar?
 
 ## Lo que acabas de aprender
 
 - Publicar un servicio Python real con variables de entorno como secretos
 - El mismo código, dos mundos (SQLite/Postgres) por una variable
 - Deploy automático desde GitHub (CI en chico)
+- Sembrar la BD como parte del build: la nube corre tu semilla por ti (y la idempotencia paga el precio de entrada)
 - Hibernación y disco efímero: las dos lecciones del plan gratis
 
 **Última parada:** `08_mantenimiento.md` — el sistema ya vive: qué pasa cuando algo se rompe, cuando el cliente pide cambios, y cómo se cierra (y se reabre) el ciclo.
